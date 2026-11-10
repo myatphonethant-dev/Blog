@@ -17,7 +17,7 @@ public class BlogService
     {
         return await _db.Blogs.Select(b => new BlogModel
         {
-            BlogId = b.Id,
+            BlogId = b.BlogId,
             BlogTitle = b.BlogTitle,
             BlogAuthor = b.BlogAuthor,
             BlogContent = b.BlogContent
@@ -49,7 +49,7 @@ public class BlogService
         await _db.SaveChangesAsync();
         return new BlogModel
         {
-            BlogId = blog.Id,
+            BlogId = blog.BlogId,
             BlogTitle = blog.BlogTitle,
             BlogAuthor = blog.BlogAuthor,
             BlogContent = blog.BlogContent
@@ -82,7 +82,7 @@ public class BlogService
             .Where(b => b.BlogTitle!.Contains(searchTerm) || b.BlogAuthor!.Contains(searchTerm))
             .Select(b => new BlogModel
             {
-                BlogId = b.Id,
+                BlogId = b.BlogId,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent
@@ -95,7 +95,7 @@ public class BlogService
             .Where(b => b.BlogAuthor == author)
             .Select(b => new BlogModel
             {
-                BlogId = b.Id,
+                BlogId = b.BlogId,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent
@@ -108,7 +108,7 @@ public class BlogService
             .Where(b => b.BlogTitle == title)
             .Select(b => new BlogModel
             {
-                BlogId = b.Id,
+                BlogId = b.BlogId,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent

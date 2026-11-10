@@ -6,18 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogWebApi.AppDbContext;
 
-[Keyless]
 [Table("Blog")]
 public partial class Blog
 {
+    [Key]
     public int BlogId { get; set; }
 
-    [Unicode(false)]
     public string? BlogTitle { get; set; }
 
-    [Unicode(false)]
     public string? BlogAuthor { get; set; }
 
-    [Unicode(false)]
     public string? BlogContent { get; set; }
 }
