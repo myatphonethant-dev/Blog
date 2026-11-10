@@ -1,38 +1,43 @@
-﻿using BlogWebApi.Models;
+﻿using BlogWebApi.AppDbContext;
+using BlogWebApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlogWebApi.Services;
 
 public class BlogService
 {
-    private readonly AppDbContext _db;
+    private readonly EfAppDbContext _db;
 
-    public BlogService(AppDbContext db) => _db = db;
+    public BlogService(EfAppDbContext db)
+    {
+        _db = db;
+    }
 
-    public async Task<List<BlogModel>> GetAllBlogsAsync()
+    public async Task<List<BlogModel>> GetAllBlog()
     {
         return await _db.Blogs.Select(b => new BlogModel
         {
-            Id = b.Id,
+            BlogId = b.Id,
             BlogTitle = b.BlogTitle,
             BlogAuthor = b.BlogAuthor,
             BlogContent = b.BlogContent
         }).ToListAsync();
     }
 
-    public async Task<BlogModel?> GetBlogByIdAsync(int id)
+    public async Task<BlogModel?> GetBlogById(int id)
     {
         var blog = await _db.Blogs.FindAsync(id);
         if (blog == null) return null;
         return new BlogModel
         {
-            Id = blog.Id,
+            BlogId = blog.BlogId,
             BlogTitle = blog.BlogTitle,
             BlogAuthor = blog.BlogAuthor,
             BlogContent = blog.BlogContent
         };
     }
 
-    public async Task<BlogModel> CreateBlogAsync(BlogRequestModel request)
+    public async Task<BlogModel> CreateBlog(BlogRequestModel request)
     {
         var blog = new Blog
         {
@@ -44,14 +49,14 @@ public class BlogService
         await _db.SaveChangesAsync();
         return new BlogModel
         {
-            Id = blog.Id,
+            BlogId = blog.Id,
             BlogTitle = blog.BlogTitle,
             BlogAuthor = blog.BlogAuthor,
             BlogContent = blog.BlogContent
         };
     }
 
-    public async Task<bool> UpdateBlogAsync(int id, BlogRequestModel request)
+    public async Task<bool> UpdateBlog(int id, BlogRequestModel request)
     {
         var blog = await _db.Blogs.FindAsync(id);
         if (blog == null) return false;
@@ -62,7 +67,7 @@ public class BlogService
         return true;
     }
 
-    public async Task<bool> DeleteBlogAsync(int id)
+    public async Task<bool> DeleteBlog(int id)
     {
         var blog = await _db.Blogs.FindAsync(id);
         if (blog == null) return false;
@@ -71,42 +76,42 @@ public class BlogService
         return true;
     }
 
-    public async Task<List<BlogModel>> SearchBlogsAsync(string searchTerm)
+    public async Task<List<BlogModel>> SearchBlog(string searchTerm)
     {
         return await _db.Blogs
             .Where(b => b.BlogTitle!.Contains(searchTerm) || b.BlogAuthor!.Contains(searchTerm))
             .Select(b => new BlogModel
             {
-                Id = b.Id,
+                BlogId = b.Id,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent
             }).ToListAsync();
     }
 
-    public async Task<List<BlogModel>> GetBlogsByAuthorAsync(string author)
+    public async Task<List<BlogModel>> GetBlogByAuthor(string author)
     {
         return await _db.Blogs
             .Where(b => b.BlogAuthor == author)
             .Select(b => new BlogModel
             {
-                Id = b.Id,
+                BlogId = b.Id,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent
             }).ToListAsync();
     }
 
-    public async Task<List<BlogModel>> GetBlogsByTitleAsync(string title)
+    public async Task<List<BlogModel>> GetBlogByTitle(string title)
     {
         return await _db.Blogs
             .Where(b => b.BlogTitle == title)
             .Select(b => new BlogModel
             {
-                Id = b.Id,
+                BlogId = b.Id,
                 BlogTitle = b.BlogTitle,
                 BlogAuthor = b.BlogAuthor,
                 BlogContent = b.BlogContent
             }).ToListAsync();
-    } 
+    }
 }

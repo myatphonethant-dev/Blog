@@ -1,4 +1,5 @@
 using BlogWebApi.AppDbContext;
+using BlogWebApi.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,8 @@ builder.Services.AddDbContext<EfAppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
+
+builder.Services.AddScoped<BlogService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
