@@ -5,18 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BlogWebApi.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
-public class BlogController : ControllerBase
+[Route("api/[controller]")]
+public class BlogController(BlogService blogService) : ControllerBase
 {
-    private readonly BlogService _blogService;
+    private readonly BlogService _blogService = blogService;
 
-    public BlogController(BlogService blogService)
-    {
-        _blogService = blogService;
-    }
-
-    [HttpGet]
+    [HttpGet("List")]
     public async Task<IActionResult> GetList()
     {
         var result = await _blogService.GetAllBlog();
@@ -24,7 +19,7 @@ public class BlogController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("Edit/{id}")]
     public async Task<IActionResult> GetBlog(int id)
     {
         var result = await _blogService.GetBlogById(id);
@@ -32,44 +27,55 @@ public class BlogController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost]
+    [HttpPost("Create")]
     public async Task<IActionResult> CreateBlog([FromBody] BlogRequestModel request)
     {
         var result = await _blogService.CreateBlog(request);
-        return CreatedAtAction(nameof(GetBlog), new { id = result.BlogId }, result);
+
+        return CreatedAtAction(
+            nameof(GetBlog),
+            new { id = result.Data!.BlogId },
+            result
+        );
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("Update/{id:int}")]
     public async Task<IActionResult> UpdateBlog(int id, [FromBody] BlogRequestModel request)
     {
         var result = await _blogService.UpdateBlog(id, request);
-        if (!result) return NotFound();
-        return NoContent();
+
+        if (!result.Success)
+            return NotFound(result);
+
+        return Ok(result);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("Delete/{id:int}")]
     public async Task<IActionResult> DeleteBlog(int id)
     {
         var result = await _blogService.DeleteBlog(id);
-        if (!result) return NotFound();
-        return NoContent();
+
+        if (!result.Success)
+            return NotFound(result);
+
+        return Ok(result);
     }
 
-    [HttpGet("search")]
+    [HttpGet("Search")]
     public async Task<IActionResult> SearchBlogs([FromQuery] string query)
     {
         var result = await _blogService.SearchBlog(query);
         return Ok(result);
     }
 
-    [HttpGet("author/{author}")]
+    [HttpGet("Author/{author}")]
     public async Task<IActionResult> GetBlogsByAuthor(string author)
     {
         var result = await _blogService.GetBlogByAuthor(author);
         return Ok(result);
     }
 
-    [HttpGet("title/{title}")]
+    [HttpGet("Title/{title}")]
     public async Task<IActionResult> GetBlogsByTitle(string title)
     {
         var result = await _blogService.GetBlogByTitle(title);

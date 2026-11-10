@@ -2,5 +2,6 @@
   <Folder Name="/Documentation/">
     <File Path="readme.md" />
   </Folder>
+  <Project Path="BlogWebApi.Tests/BlogWebApi.Tests.csproj" />
   <Project Path="BlogWebApi/BlogWebApi.csproj" />
 </Solution>

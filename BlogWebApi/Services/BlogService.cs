@@ -4,14 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogWebApi.Services;
 
-public class BlogService
+public class BlogService(EfAppDbContext db)
 {
-    private readonly EfAppDbContext _db;
-
-    public BlogService(EfAppDbContext db)
-    {
-        _db = db;
-    }
+    private readonly EfAppDbContext _db = db;
 
     public async Task<List<BlogModel>> GetAllBlog()
     {
@@ -37,7 +32,7 @@ public class BlogService
         };
     }
 
-    public async Task<BlogModel> CreateBlog(BlogRequestModel request)
+    public async Task<ApiResponse<BlogModel>> CreateBlog(BlogRequestModel request)
     {
         var blog = new Blog
         {
@@ -45,35 +40,80 @@ public class BlogService
             BlogAuthor = request.BlogAuthor,
             BlogContent = request.BlogContent
         };
+
         _db.Blogs.Add(blog);
         await _db.SaveChangesAsync();
-        return new BlogModel
+
+        var blogModel = new BlogModel
         {
             BlogId = blog.BlogId,
             BlogTitle = blog.BlogTitle,
             BlogAuthor = blog.BlogAuthor,
             BlogContent = blog.BlogContent
         };
+
+        return new ApiResponse<BlogModel>
+        {
+            Success = true,
+            Message = "Blog created successfully.",
+            Data = blogModel
+        };
     }
 
-    public async Task<bool> UpdateBlog(int id, BlogRequestModel request)
+    public async Task<ApiResponse<BlogModel>> UpdateBlog(int id, BlogRequestModel request)
     {
         var blog = await _db.Blogs.FindAsync(id);
-        if (blog == null) return false;
+
+        if (blog == null)
+        {
+            return new ApiResponse<BlogModel>
+            {
+                Success = false,
+                Message = "Blog not found."
+            };
+        }
+
         blog.BlogTitle = request.BlogTitle;
         blog.BlogAuthor = request.BlogAuthor;
         blog.BlogContent = request.BlogContent;
+
         await _db.SaveChangesAsync();
-        return true;
+
+        return new ApiResponse<BlogModel>
+        {
+            Success = true,
+            Message = "Blog updated successfully.",
+            Data = new BlogModel
+            {
+                BlogId = blog.BlogId,
+                BlogTitle = blog.BlogTitle,
+                BlogAuthor = blog.BlogAuthor,
+                BlogContent = blog.BlogContent
+            }
+        };
     }
 
-    public async Task<bool> DeleteBlog(int id)
+    public async Task<ApiResponse<BlogModel>> DeleteBlog(int id)
     {
         var blog = await _db.Blogs.FindAsync(id);
-        if (blog == null) return false;
+
+        if (blog == null)
+        {
+            return new ApiResponse<BlogModel>
+            {
+                Success = false,
+                Message = "Blog not found."
+            };
+        }
+
         _db.Blogs.Remove(blog);
         await _db.SaveChangesAsync();
-        return true;
+
+        return new ApiResponse<BlogModel>
+        {
+            Success = true,
+            Message = "Blog deleted successfully."
+        };
     }
 
     public async Task<List<BlogModel>> SearchBlog(string searchTerm)
@@ -92,7 +132,7 @@ public class BlogService
     public async Task<List<BlogModel>> GetBlogByAuthor(string author)
     {
         return await _db.Blogs
-            .Where(b => b.BlogAuthor == author)
+            .Where(b => b.BlogAuthor!.Contains(author.ToLower().Trim()))
             .Select(b => new BlogModel
             {
                 BlogId = b.BlogId,
@@ -105,7 +145,7 @@ public class BlogService
     public async Task<List<BlogModel>> GetBlogByTitle(string title)
     {
         return await _db.Blogs
-            .Where(b => b.BlogTitle == title)
+            .Where(b => b.BlogTitle!.Contains(title.ToLower().Trim()))
             .Select(b => new BlogModel
             {
                 BlogId = b.BlogId,
