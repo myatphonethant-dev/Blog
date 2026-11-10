@@ -10,6 +10,9 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web);
+
     public BlogApiTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
@@ -28,29 +31,33 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
         };
     }
 
+    // Helper: Create a blog and return its ID
     private async Task<int> CreateTestBlogAsync()
     {
         var request = CreateBlogRequest(
             $"Test Blog {Guid.NewGuid()}");
 
-        var response = await _client.PostAsJsonAsync("/api/Blog", request);
+        var response = await _client.PostAsJsonAsync(
+            "/api/Blog/Create", request);
 
-        response.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.True(json.TryGetProperty("blogId", out var id)
-                    || json.TryGetProperty("BlogId", out id),
-                    "POST response must contain BlogId.");
+        Assert.True(
+            json.GetProperty("success").GetBoolean(),
+            "Blog creation should succeed.");
 
-        return id.GetInt32();
+        var data = json.GetProperty("data");
+
+        return data.GetProperty("blogId").GetInt32();
     }
 
     // 1. GET ALL BLOGS
     [Fact]
     public async Task GetBlogs_ShouldReturnSuccessAndListOfBlogs()
     {
-        var response = await _client.GetAsync("/api/Blog");
+        var response = await _client.GetAsync("/api/Blog/List");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -69,7 +76,8 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var blogId = await CreateTestBlogAsync();
 
-        var response = await _client.GetAsync($"/api/Blog/{blogId}");
+        var response = await _client.GetAsync(
+            $"/api/Blog/Edit/{blogId}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -84,7 +92,8 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetBlogById_ShouldReturnNotFound_WhenBlogDoesNotExist()
     {
-        var response = await _client.GetAsync("/api/Blog/999999999");
+        var response = await _client.GetAsync(
+            "/api/Blog/Edit/999999999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -96,17 +105,22 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
         var request = CreateBlogRequest(
             $"New Blog {Guid.NewGuid()}");
 
-        var response = await _client.PostAsJsonAsync("/api/Blog", request);
+        var response = await _client.PostAsJsonAsync(
+            "/api/Blog/Create", request);
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.Created ||
-            response.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var blog = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.True(
-            blog.TryGetProperty("blogId", out _) ||
-            blog.TryGetProperty("BlogId", out _));
+        Assert.True(result.GetProperty("success").GetBoolean());
+
+        Assert.Equal(
+            "Blog created successfully.",
+            result.GetProperty("message").GetString());
+
+        var data = result.GetProperty("data");
+
+        Assert.True(data.GetProperty("blogId").GetInt32() > 0);
     }
 
     // 5. UPDATE BLOG
@@ -121,14 +135,22 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
             "Updated blog content.");
 
         var response = await _client.PutAsJsonAsync(
-            $"/api/Blog/{blogId}",
+            $"/api/Blog/Update/{blogId}",
             updateRequest);
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.NoContent);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var getResponse = await _client.GetAsync($"/api/Blog/{blogId}");
+        var updateResult =
+            await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(updateResult.GetProperty("success").GetBoolean());
+
+        Assert.Equal(
+            "Blog updated successfully.",
+            updateResult.GetProperty("message").GetString());
+
+        var getResponse = await _client.GetAsync(
+            $"/api/Blog/Edit/{blogId}");
 
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
 
@@ -138,6 +160,10 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(
             "Updated Blog Title",
             updatedBlog.GetProperty("blogTitle").GetString());
+
+        Assert.Equal(
+            "Updated Author",
+            updatedBlog.GetProperty("blogAuthor").GetString());
     }
 
     // 6. UPDATE BLOG - NOT FOUND
@@ -150,7 +176,7 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
             "Updated Content");
 
         var response = await _client.PutAsJsonAsync(
-            "/api/Blog/999999999",
+            "/api/Blog/Update/999999999",
             request);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -162,13 +188,22 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var blogId = await CreateTestBlogAsync();
 
-        var response = await _client.DeleteAsync($"/api/Blog/{blogId}");
+        var response = await _client.DeleteAsync(
+            $"/api/Blog/Delete/{blogId}");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.NoContent);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var getResponse = await _client.GetAsync($"/api/Blog/{blogId}");
+        var deleteResult =
+            await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(deleteResult.GetProperty("success").GetBoolean());
+
+        Assert.Equal(
+            "Blog deleted successfully.",
+            deleteResult.GetProperty("message").GetString());
+
+        var getResponse = await _client.GetAsync(
+            $"/api/Blog/Edit/{blogId}");
 
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
@@ -177,7 +212,8 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task DeleteBlog_ShouldReturnNotFound_WhenBlogDoesNotExist()
     {
-        var response = await _client.DeleteAsync("/api/Blog/999999999");
+        var response = await _client.DeleteAsync(
+            "/api/Blog/Delete/999999999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -194,7 +230,7 @@ public class BlogApiTests : IClassFixture<WebApplicationFactory<Program>>
         };
 
         var response = await _client.PostAsJsonAsync(
-            "/api/Blog",
+            "/api/Blog/Create",
             invalidRequest);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

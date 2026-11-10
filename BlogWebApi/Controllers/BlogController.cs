@@ -62,7 +62,7 @@ public class BlogController(BlogService blogService) : ControllerBase
     }
 
     [HttpGet("Search")]
-    public async Task<IActionResult> SearchBlogs([FromQuery] string query)
+    public async Task<IActionResult> SearchBlog([FromQuery] string query)
     {
         var result = await _blogService.SearchBlog(query);
         return Ok(result);
